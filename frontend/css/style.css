@@ -1,0 +1,63 @@
+/* ============================================================================
+ * STYLE.CSS - Klinik Naseha Hybrid App
+ * ============================================================================ */
+
+body {
+    background-color: #F4F7FA;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Efek Pulse saat nomor antrean aktif dipanggil */
+.pulse-call {
+    animation: pulse-border 1.5s infinite;
+}
+
+@keyframes pulse-border {
+    0%   { box-shadow: 0 0 0 0 rgba(0, 97, 164, 0.6); }
+    70%  { box-shadow: 0 0 0 16px rgba(0, 97, 164, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 97, 164, 0); }
+}
+
+/* Card Ticket Drop Shadow */
+.ticket-shadow {
+    box-shadow: 0 10px 30px -5px rgba(0, 97, 164, 0.15);
+}
+
+/* Sembunyikan Scrollbar Navigasi */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Connection Status Indicator */
+#conn-dot.online  { background-color: #10b981; }
+#conn-dot.offline { background-color: #ef4444; }
+#conn-dot.loading { background-color: #f59e0b; }
+
+/* Toast animation entry */
+.toast-enter { transform: translateY(8px); opacity: 0; }
+.toast-show  { transform: translateY(0); opacity: 1; transition: all 0.3s ease-out; }
+
+/* Optimasi Tampilan Cetak Tiket */
+@media print {
+    body * { visibility: hidden; }
+    #modal-ticket, #modal-ticket * { visibility: visible; }
+    #modal-ticket {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: auto;
+        background: white !important;
+        padding: 0 !important;
+    }
+    #modal-ticket button { display: none !important; }
+}
+
+/* Disabled state visual */
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Slight hover lift for interactive cards */
+.nav-tab { transition: all 0.2s ease; }

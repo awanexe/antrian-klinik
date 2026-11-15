@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Klinik Naseha - Sistem Antrean Pasien</title>
+    <meta name="description" content="Sistem Antrean Pasien Klinik Naseha - Real-time, Multi-channel">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        md: {
+                            primary: '#0061A4',
+                            onPrimary: '#FFFFFF',
+                            primaryContainer: '#D1E4FF',
+                            onPrimaryContainer: '#001D36',
+                            secondary: '#535F70',
+                            surface: '#F8FDFF',
+                            surfaceVariant: '#DFE2EB',
+                            outline: '#73777F',
+                            success: '#138808',
+                            warning: '#B58300',
+                            error: '#BA1A1A'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- CSS MODULAR -->
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body class="text-slate-800 flex flex-col min-h-screen">
+
+    <!-- TOP APP BAR -->
+    <header class="bg-md-primary text-white sticky top-0 z-40 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white text-xl">
+                    <i class="fa-solid font-bold fa-hospital"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide">KLINIK NASEHA</h1>
+                    <p class="text-xs text-blue-100 flex items-center gap-1.5">
+                        <span id="conn-dot" class="w-2 h-2 rounded-full bg-slate-400 inline-block"></span>
+                        <span id="conn-label">Menghubungkan...</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="testTTS()" title="Uji Coba Suara Pemanggil" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium transition">
+                    <i class="fa-solid fa-volume-high"></i> Tes Suara
+                </button>
+                <button onclick="manualRefresh()" title="Refresh Data" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium transition">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN NAVIGATION TABS -->
+        <nav class="bg-blue-900/40 border-t border-white/10 overflow-x-auto no-scrollbar">
+            <div class="max-w-7xl mx-auto px-4 flex gap-1 sm:gap-2">
+                <button onclick="switchTab('display')" id="tab-display" class="nav-tab text-white bg-white/20 px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-t-lg flex items-center gap-2 transition whitespace-nowrap border-b-2 border-white">
+                    <i class="fa-solid fa-tv"></i> Layar Utama
+                </button>
+                <button onclick="switchTab('register')" id="tab-register" class="nav-tab text-blue-100 hover:text-white hover:bg-white/10 px-4 py-2.5 text-xs sm:text-sm font-medium rounded-t-lg flex items-center gap-2 transition whitespace-nowrap border-b-2 border-transparent">
+                    <i class="fa-solid fa-ticket"></i> Ambil Antrean
+                </button>
+                <button onclick="switchTab('loket')" id="tab-loket" class="nav-tab text-blue-100 hover:text-white hover:bg-white/10 px-4 py-2.5 text-xs sm:text-sm font-medium rounded-t-lg flex items-center gap-2 transition whitespace-nowrap border-b-2 border-transparent">
+                    <i class="fa-solid fa-user-gear"></i> Konsol Loket
+                </button>
+                <button onclick="switchTab('dokter')" id="tab-dokter" class="nav-tab text-blue-100 hover:text-white hover:bg-white/10 px-4 py-2.5 text-xs sm:text-sm font-medium rounded-t-lg flex items-center gap-2 transition whitespace-nowrap border-b-2 border-transparent">
+                    <i class="fa-solid fa-user-doctor"></i> Ruang Dokter
+                </button>
+                <button onclick="switchTab('admin')" id="tab-admin" class="nav-tab text-blue-100 hover:text-white hover:bg-white/10 px-4 py-2.5 text-xs sm:text-sm font-medium rounded-t-lg flex items-center gap-2 transition whitespace-nowrap border-b-2 border-transparent">
+                    <i class="fa-solid fa-chart-line"></i> Laporan & Master Data
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- NOTIFICATION TOAST CONTAINER -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6">
+
+        <!-- ================= TAB 1: LAYAR UTAMA ================= -->
+        <section id="page-display" class="space-y-6">
+            <div class="bg-gradient-to-r from-md-primary to-blue-800 rounded-3xl p-6 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <span class="px-3 py-1 bg-white/20 rounded-full text-xs font-semibold tracking-wide uppercase">Pemberitahuan Real-Time</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold mt-2">Panggilan Antrean Aktif</h2>
+                    <p class="text-blue-100 text-sm mt-1">Perhatikan nomor antrean Anda. Suara pemanggil akan berbunyi otomatis.</p>
+                </div>
+                <div class="flex items-center gap-4 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
+                    <i class="fa-solid fa-clock text-2xl text-amber-300"></i>
+                    <div>
+                        <div id="clock-time" class="text-2xl font-black font-mono tracking-wider">00:00:00</div>
+                        <div id="clock-date" class="text-xs text-blue-200 font-medium">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 ticket-shadow flex flex-col justify-between relative overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                        <span class="text-xs font-bold text-md-primary uppercase tracking-wider bg-blue-50 px-3 py-1.5 rounded-full">Sedang Dipanggil</span>
+                        <span id="call-service-name" class="text-sm font-semibold text-slate-600">Poli Umum</span>
+                    </div>
+
+                    <div class="py-8 text-center my-auto">
+                        <div class="text-xs font-bold text-slate-400 tracking-widest uppercase mb-2">NOMOR ANTREAN</div>
+                        <div id="call-number" class="text-6xl sm:text-8xl font-black text-md-primary tracking-wider font-mono my-2 pulse-call inline-block px-8 py-3 rounded-3xl bg-blue-50/80">
+                            ---
+                        </div>
+                        <div id="call-patient-name" class="text-xl sm:text-2xl font-bold text-slate-800 mt-4">
+                            Silakan Menunggu Panggilan
+                        </div>
+                        <div id="call-target" class="text-sm font-semibold text-emerald-600 mt-1">
+                            <i class="fa-solid fa-location-dot"></i> <span id="call-target-text">Menuju Loket / Ruang Periksa</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 rounded-2xl p-4 flex items-center justify-between text-xs text-slate-500 border border-slate-100">
+                        <span><i class="fa-solid fa-volume-high text-md-primary"></i> Audio pemanggil otomatis aktif</span>
+                        <button onclick="replayCurrentCall()" class="text-md-primary font-bold hover:underline flex items-center gap-1">
+                            <i class="fa-solid fa-rotate-right"></i> Putar Ulang Suara
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-4 flex flex-col justify-between">
+                    <h3 class="font-bold text-slate-700 text-sm tracking-wide uppercase flex items-center justify-between">
+                        <span>Ringkasan Layanan Poli</span>
+                        <span class="text-xs text-slate-400 font-normal">Auto Sync</span>
+                    </h3>
+                    <div id="display-poli-cards" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span> Pasien Sedang Dilayani
+                        </h3>
+                        <span id="badge-count-serving" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">0</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs sm:text-sm">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+                                <tr>
+                                    <th class="p-3 rounded-l-xl">No. Antrean</th>
+                                    <th class="p-3">Nama Pasien</th>
+                                    <th class="p-3">Poli / Dokter</th>
+                                    <th class="p-3 rounded-r-xl text-right">Waktu</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-display-serving" class="divide-y divide-slate-100">
+                                <tr><td colspan="4" class="p-4 text-center text-slate-400 text-xs">Belum ada pasien dilayani</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-amber-500"></span> Antrean Menunggu Berikutnya
+                        </h3>
+                        <span id="badge-count-waiting" class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full">0</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs sm:text-sm">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+                                <tr>
+                                    <th class="p-3 rounded-l-xl">No. Antrean</th>
+                                    <th class="p-3">Nama Pasien</th>
+                                    <th class="p-3">Layanan Poli</th>
+                                    <th class="p-3 rounded-r-xl text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-display-waiting" class="divide-y divide-slate-100">
+                                <tr><td colspan="4" class="p-4 text-center text-slate-400 text-xs">Antrean kosong</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: AMBIL ANTREAN ================= -->
+        <section id="page-register" class="hidden max-w-2xl mx-auto space-y-6">
+            <div class="text-center space-y-2">
+                <span class="px-3 py-1 bg-blue-100 text-md-primary rounded-full text-xs font-bold uppercase tracking-wider">Pendaftaran Mandiri Pasien</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800">Ambil Nomor Antrean</h2>
+                <p class="text-slate-500 text-sm">Isi data pasien dan pilih layanan poli tujuan Anda.</p>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md">
+                <form id="form-register" onsubmit="submitQueue(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Nama Lengkap Pasien *</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-user absolute left-4 top-3.5 text-slate-400"></i>
+                            <input type="text" id="reg-nama" required maxlength="100" placeholder="Masukkan nama sesuai KTP/Identitas" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-md-primary outline-none text-sm transition">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">NIK / No. Identitas</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-id-card absolute left-4 top-3.5 text-slate-400"></i>
+                                <input type="text" id="reg-nik" maxlength="16" placeholder="16 Digit NIK (Opsional)" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-md-primary outline-none text-sm transition">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">No. HP / WhatsApp</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-phone absolute left-4 top-3.5 text-slate-400"></i>
+                                <input type="tel" id="reg-phone" maxlength="15" placeholder="08xxxxxxxxxx" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-md-primary outline-none text-sm transition">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Pilih Layanan Poli *</label>
+                        <select id="reg-service" onchange="updateDoctorOptions()" required class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-md-primary outline-none text-sm bg-white transition"></select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Pilih Dokter Praktik *</label>
+                        <select id="reg-doctor" required class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-md-primary outline-none text-sm bg-white transition"></select>
+                    </div>
+
+                    <button type="submit" id="btn-submit-queue" class="w-full bg-md-primary hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-base disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-print"></i> Cetak & Ambil Nomor Antrean
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: KONSOL LOKET ================= -->
+        <section id="page-loket" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Konsol Petugas Loket</h2>
+                    <p class="text-slate-500 text-xs sm:text-sm">Kelola pemanggilan nomor antrean pasien secara berurutan.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <select id="filter-loket-service" onchange="renderLoketConsole()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs font-medium bg-white">
+                        <option value="ALL">Semua Poli / Layanan</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-md grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200 text-center flex flex-col justify-between">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Antrean Sedang Dipanggil</span>
+                    <div class="py-4">
+                        <div id="loket-current-no" class="text-5xl font-black text-md-primary font-mono tracking-wider">---</div>
+                        <div id="loket-current-name" class="text-lg font-bold text-slate-800 mt-2">Belum ada panggilan</div>
+                        <div id="loket-current-poli" class="text-xs text-slate-500 font-medium">--</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <button onclick="loketAction('recall')" class="px-3 py-2 bg-blue-100 text-md-primary hover:bg-blue-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-volume-high"></i> Panggil Ulang
+                        </button>
+                        <button onclick="loketAction('serve')" class="px-3 py-2 bg-emerald-600 text-white hover:bg-emerald-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-check"></i> Melayani
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 flex flex-col justify-center space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <button onclick="loketAction('next')" class="p-4 bg-md-primary hover:bg-blue-700 text-white rounded-2xl font-bold transition flex flex-col items-center justify-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-forward-step text-2xl"></i>
+                            <span class="text-xs">Panggil Selanjutnya</span>
+                        </button>
+                        <button onclick="loketAction('skip')" class="p-4 bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 rounded-2xl font-bold transition flex flex-col items-center justify-center gap-2">
+                            <i class="fa-solid fa-forward text-2xl"></i>
+                            <span class="text-xs">Dilewati / Lewati</span>
+                        </button>
+                        <button onclick="loketAction('cancel')" class="p-4 bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 rounded-2xl font-bold transition flex flex-col items-center justify-center gap-2">
+                            <i class="fa-solid fa-circle-xmark text-2xl"></i>
+                            <span class="text-xs">Batalkan Antrean</span>
+                        </button>
+                    </div>
+
+                    <div class="p-3 bg-blue-50/50 rounded-xl text-xs text-slate-600 flex items-center gap-2">
+                        <i class="fa-solid fa-lightbulb text-amber-500 text-base"></i>
+                        <span>Tombol <b>Panggil Selanjutnya</b> otomatis mengambil nomor antrean paling awal dengan status 'Menunggu'.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 mb-4 text-sm uppercase tracking-wider">Daftar Antrean Hari Ini</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs sm:text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+                            <tr>
+                                <th class="p-3">No. Antrean</th>
+                                <th class="p-3">Waktu Daftar</th>
+                                <th class="p-3">Nama Pasien</th>
+                                <th class="p-3">Layanan / Dokter</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 text-right">Aksi Panggil Direct</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-loket-list" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 4: RUANG DOKTER ================= -->
+        <section id="page-dokter" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Pemeriksaan Dokter</h2>
+                    <p class="text-slate-500 text-xs sm:text-sm">Daftar pasien yang menunggu giliran periksa di ruang dokter.</p>
+                </div>
+                <div>
+                    <select id="filter-dokter-select" onchange="renderDokterConsole()" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold bg-white text-md-primary"></select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-md space-y-4">
+                    <div class="flex items-center justify-between border-b pb-3">
+                        <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full uppercase">Sedang Diperiksa</span>
+                        <i class="fa-solid fa-stethoscope text-slate-400"></i>
+                    </div>
+
+                    <div class="text-center py-4">
+                        <div id="doc-active-no" class="text-5xl font-black text-slate-800 font-mono tracking-wider">---</div>
+                        <div id="doc-active-name" class="text-lg font-bold text-md-primary mt-2">Tidak Ada Pasien</div>
+                        <div id="doc-active-info" class="text-xs text-slate-400 mt-1">Belum ada pasien dipanggil periksa</div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Catatan Ringkas / Tindakan (Opsional)</label>
+                        <textarea id="doc-notes" rows="3" maxlength="500" placeholder="Tuliskan catatan periksa ringkas..." class="w-full p-3 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-md-primary"></textarea>
+                    </div>
+
+                    <button onclick="finishDoctorCheck()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-xs flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-circle-check"></i> Selesaikan Pemeriksaan
+                    </button>
+                </div>
+
+                <div class="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 text-sm tracking-wider uppercase">Pasien Antrean Dokter Ini</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs sm:text-sm">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+                                <tr>
+                                    <th class="p-3">No</th>
+                                    <th class="p-3">Nama Pasien</th>
+                                    <th class="p-3">Status Antrean</th>
+                                    <th class="p-3 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-dokter-list" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 5: LAPORAN & MASTER DATA ================= -->
+        <section id="page-admin" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Laporan & Pengaturan Master</h2>
+                    <p class="text-slate-500 text-xs sm:text-sm">Rekapitulasi statistik pelayanan dan kelola data poli/dokter.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="triggerSetupDatabase()" class="px-3 py-2.5 bg-blue-100 hover:bg-blue-200 text-md-primary font-bold text-xs rounded-xl transition flex items-center gap-2">
+                        <i class="fa-solid fa-database"></i> Setup DB Sheets
+                    </button>
+                    <button onclick="exportReportCSV()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+                        <i class="fa-solid fa-file-excel"></i> Ekspor CSV
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Antrean</span>
+                    <div id="stat-total" class="text-2xl font-black text-slate-800 mt-1">0</div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-amber-600 font-bold uppercase tracking-wider">Menunggu</span>
+                    <div id="stat-waiting" class="text-2xl font-black text-amber-600 mt-1">0</div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-blue-600 font-bold uppercase tracking-wider">Dilayani</span>
+                    <div id="stat-serving" class="text-2xl font-black text-blue-600 mt-1">0</div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-emerald-600 font-bold uppercase tracking-wider">Selesai</span>
+                    <div id="stat-done" class="text-2xl font-black text-emerald-600 mt-1">0</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-slate-800 text-sm tracking-wider uppercase">Master Poli / Layanan</h3>
+                        <button onclick="promptAddService()" class="text-xs font-bold text-md-primary hover:underline">+ Tambah Poli</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase">
+                                <tr>
+                                    <th class="p-2.5">Prefix</th>
+                                    <th class="p-2.5">Nama Poli</th>
+                                    <th class="p-2.5 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-master-services" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-slate-800 text-sm tracking-wider uppercase">Master Dokter & Praktik</h3>
+                        <button onclick="promptAddDoctor()" class="text-xs font-bold text-md-primary hover:underline">+ Tambah Dokter</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase">
+                                <tr>
+                                    <th class="p-2.5">Nama Dokter</th>
+                                    <th class="p-2.5">Layanan Poli</th>
+                                    <th class="p-2.5 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-master-doctors" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- TICKET PRINT MODAL -->
+    <div id="modal-ticket" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center ticket-shadow space-y-6 relative">
+            <button onclick="closeTicketModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+
+            <div class="border-b border-slate-100 pb-4">
+                <h3 class="font-black text-lg text-md-primary tracking-wide">KLINIK NASEHA</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Tiket Antrean Pasien Mandiri</p>
+            </div>
+
+            <div class="bg-blue-50/70 p-6 rounded-3xl border border-blue-100">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">NOMOR ANTREAN</div>
+                <div id="modal-ticket-no" class="text-6xl font-black text-md-primary font-mono tracking-wider my-2">A-000</div>
+                <div id="modal-ticket-service" class="text-sm font-bold text-slate-800">Poli Umum</div>
+            </div>
+
+            <div class="text-left text-xs space-y-1.5 text-slate-600 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div class="flex justify-between"><span>Nama:</span> <b id="modal-ticket-name" class="text-slate-800">--</b></div>
+                <div class="flex justify-between"><span>Dokter:</span> <b id="modal-ticket-doctor" class="text-slate-800">--</b></div>
+                <div class="flex justify-between"><span>Waktu Daftar:</span> <b id="modal-ticket-time" class="text-slate-800">--</b></div>
+            </div>
+
+            <p class="text-[11px] text-slate-400 italic">Harap simpan tiket ini dan tunggu panggilan suara nama/nomor Anda di area ruang tunggu.</p>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button onclick="window.print()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-print"></i> Cetak
+                </button>
+                <button onclick="closeTicketModal()" class="px-4 py-2.5 bg-md-primary hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition">
+                    Selesai
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS CLIENT LOGIC -->
+    <script src="./js/main.js"></script>
+</body>
+</html>
