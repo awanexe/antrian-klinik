@@ -217,9 +217,15 @@ function readTodayQueues(ss) {
   if (sheet && sheet.getLastRow() > 1) {
     const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 12).getValues();
     data.forEach(row => {
-      const rowDate = row[2] instanceof Date
-        ? Utilities.formatDate(row[2], Session.getScriptTimeZone(), 'yyyy-MM-dd')
-        : String(row[2]);
+      // Normalisasi tanggal: apapun tipe aslinya, jadikan string "yyyy-MM-dd" di timezone server
+      let rowDate = '';
+      if (row[2] instanceof Date) {
+        rowDate = Utilities.formatDate(row[2], Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      } else if (row[2] !== null && row[2] !== undefined && String(row[2]).trim() !== '') {
+        const s = String(row[2]).trim();
+        // Jika berupa string ISO "yyyy-MM-dd..." ambil 10 char pertama
+        rowDate = /^\d{4}-\d{2}-\d{2}/.test(s) ? s.substring(0, 10) : s;
+      }
 
       if (rowDate === today || rowDate === '') {
         queues.push({
@@ -266,24 +272,47 @@ function saveQueueServer(queueData) {
       };
     }
 
+    // PENTING: Server TIDAK mempercayai tanggal dari client.
+    // Tanggal & jam daftar selalu di-generate ulang di server-side timezone
+    // agar konsisten dengan filter readTodayQueues().
+    const nowServer        = new Date();
+    const serverDate       = Utilities.formatDate(nowServer, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    const serverWaktuDaftar = Utilities.formatDate(nowServer, Session.getScriptTimeZone(), 'HH:mm');
+
     const newId = String(queueData.id || ('Q-' + Date.now()));
     sheet.appendRow([
       newId,
       String(queueData.no),
-      queueData.date,
+      serverDate,
       String(queueData.name),
       String(queueData.nik || ''),
       String(queueData.phone || ''),
       String(queueData.serviceId),
       String(queueData.doctorId),
       String(queueData.status || 'Menunggu'),
-      String(queueData.waktuDaftar || ''),
+      serverWaktuDaftar,
       String(queueData.waktuPanggil || ''),
       String(queueData.catatan || '')
     ]);
 
-    logBackup('saveQueue', queueData);
-    return { success: true, data: queueData };
+    // Kembalikan data yang SUDAH dinormalisasi server agar client pakai versi konsisten
+    const normalized = {
+      id: newId,
+      no: String(queueData.no),
+      date: serverDate,
+      name: String(queueData.name),
+      nik: String(queueData.nik || ''),
+      phone: String(queueData.phone || ''),
+      serviceId: String(queueData.serviceId),
+      doctorId: String(queueData.doctorId),
+      status: String(queueData.status || 'Menunggu'),
+      waktuDaftar: serverWaktuDaftar,
+      waktuPanggil: String(queueData.waktuPanggil || ''),
+      catatan: String(queueData.catatan || '')
+    };
+
+    logBackup('saveQueue', normalized);
+    return { success: true, data: normalized };
   } catch (error) {
     Logger.log('saveQueueServer error: ' + error.message);
     return { success: false, message: error.message };
@@ -307,9 +336,14 @@ function checkDuplicateQueue(ss, q) {
 
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
-    const rowDate = row[2] instanceof Date
-      ? Utilities.formatDate(row[2], Session.getScriptTimeZone(), 'yyyy-MM-dd')
-      : String(row[2]);
+    let rowDate = '';
+    if (row[2] instanceof Date) {
+      rowDate = Utilities.formatDate(row[2], Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    } else if (row[2] !== null && row[2] !== undefined && String(row[2]).trim() !== '') {
+      const s = String(row[2]).trim();
+      rowDate = /^\d{4}-\d{2}-\d{2}/.test(s) ? s.substring(0, 10) : s;
+    }
+
     if (rowDate !== today) continue;
 
     const rowStatus = String(row[8]);

@@ -3,14 +3,6 @@
  * MAIN.JS - Klinik Naseha Hybrid App Frontend Logic
  * ============================================================================
  * Komunikasi ke backend GAS via /api/proxy (Vercel Serverless).
- * Semua fitur dari versi lama dipertahankan:
- *  - Registrasi antrean + tiket cetak
- *  - Konsol loket (panggil, ulang, layani, lewati, batal)
- *  - Konsol dokter (mulai & selesaikan pemeriksaan)
- *  - Master data poli & dokter
- *  - TTS pemanggil otomatis
- *  - Laporan CSV
- *  - Polling sinkronisasi multi-client
  * ============================================================================
  */
 
@@ -30,7 +22,18 @@ let appState = {
 
 let isPolling = false;
 let isSubmitting = false;
-let connStatus = 'loading'; // 'online' | 'offline' | 'loading'
+let connStatus = 'loading';
+
+// ============================================================
+// DATE HELPER (LOCAL, BUKAN UTC)
+// ============================================================
+function getLocalDateStr(dateObj) {
+    const d = dateObj || new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
 
 // ============================================================
 // API HELPERS
@@ -78,9 +81,9 @@ function setConnectionStatus(status) {
         dot.classList.add(status);
     }
     if (label) {
-        if (status === 'online')      label.innerText = 'Terhubung ke Server (Real-time)';
+        if (status === 'online')       label.innerText = 'Terhubung ke Server (Real-time)';
         else if (status === 'offline') label.innerText = 'Koneksi Terputus — Mode Cache';
-        else                           label.innerText = 'Menghubungkan...';
+        else                            label.innerText = 'Menghubungkan...';
     }
 }
 
@@ -88,11 +91,8 @@ function setConnectionStatus(status) {
 // LOCAL PERSISTENCE
 // ============================================================
 function saveState() {
-    try {
-        localStorage.setItem(STATE_KEY, JSON.stringify(appState));
-    } catch (e) {
-        console.warn('saveState failed:', e);
-    }
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(appState)); }
+    catch (e) { console.warn('saveState failed:', e); }
 }
 
 function loadState() {
@@ -100,14 +100,12 @@ function loadState() {
         const saved = localStorage.getItem(STATE_KEY);
         if (saved) {
             const parsed = JSON.parse(saved);
-            appState.services = parsed.services || [];
-            appState.doctors = parsed.doctors || [];
-            appState.queues = parsed.queues || [];
+            appState.services  = parsed.services || [];
+            appState.doctors   = parsed.doctors || [];
+            appState.queues    = parsed.queues || [];
             appState.activeCall = appState.queues.find(q => q.status === 'Dipanggil') || null;
         }
-    } catch (e) {
-        console.warn('loadState failed:', e);
-    }
+    } catch (e) { console.warn('loadState failed:', e); }
 }
 
 // ============================================================
@@ -150,8 +148,6 @@ window.onload = function () {
     renderAllViews();
     setConnectionStatus('loading');
     fetchServerData();
-
-    // Polling server sinkronisasi real-time
     setInterval(fetchServerData, POLL_INTERVAL_MS);
 };
 
@@ -227,7 +223,6 @@ function renderDisplayBoard() {
         if (callTarget) callTarget.innerText = 'Loket Pelayanan';
     }
 
-    // Poli cards
     const poliContainer = document.getElementById('display-poli-cards');
     if (poliContainer) {
         if (appState.services.length === 0) {
@@ -251,7 +246,6 @@ function renderDisplayBoard() {
         }
     }
 
-    // Serving table
     const servingList = appState.queues.filter(q => q.status === 'Dilayani');
     const badgeServing = document.getElementById('badge-count-serving');
     if (badgeServing) badgeServing.innerText = servingList.length;
@@ -274,7 +268,6 @@ function renderDisplayBoard() {
         }
     }
 
-    // Waiting table
     const waitingList = appState.queues.filter(q => q.status === 'Menunggu');
     const badgeWaiting = document.getElementById('badge-count-waiting');
     if (badgeWaiting) badgeWaiting.innerText = waitingList.length;
@@ -535,7 +528,7 @@ async function submitQueue(e) {
     const newQueue = {
         id: 'Q-' + Date.now(),
         no: noAntrean,
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateStr(),        // ✅ tanggal lokal, bukan UTC
         name, nik, phone, serviceId, doctorId,
         status: 'Menunggu',
         waktuDaftar: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
@@ -554,10 +547,10 @@ async function submitQueue(e) {
 
     if (!result || !result.success) {
         showToast(result?.message || 'Gagal menyimpan antrean ke server.', 'error');
-        // Kalau offline, tetap simpan lokal supaya bisa dicetak
-        if (!result || result.success === false) return;
+        return;
     }
 
+    // ✅ Gunakan data yang SUDAH dinormalisasi server (server yang generate date & waktuDaftar)
     const savedQueue = result.data || newQueue;
     appState.queues.push(savedQueue);
     saveState();
@@ -858,7 +851,7 @@ function exportReportCSV() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Laporan_Antrean_Klinik_Naseha_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `Laporan_Antrean_Klinik_Naseha_${getLocalDateStr()}.csv`;  // ✅ lokal
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
