@@ -1,24 +1,14 @@
 {
   "version": 2,
   "name": "klinik-naseha-antrean",
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/proxy.js",
-      "use": "@vercel/node"
+      "source": "/api/(.*)",
+      "destination": "/api/proxy"
     },
     {
-      "src": "frontend/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/proxy.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
     }
   ],
   "headers": [
@@ -38,6 +28,12 @@
       "source": "/js/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    },
+    {
+      "source": "/icons/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
   ]
